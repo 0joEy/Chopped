@@ -1,10 +1,7 @@
 package net.henrycmoss;
 
 import org.lwjgl.Version;
-import org.lwjgl.glfw.GLFW;
-import org.lwjgl.glfw.GLFWErrorCallback;
-import org.lwjgl.glfw.GLFWKeyCallbackI;
-import org.lwjgl.glfw.GLFWVidMode;
+import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
 
@@ -26,7 +23,9 @@ public class Chopped {
 
     private long window;
 
-    private float blue = 0f;
+    private static float blue = 0.0f;
+    private static float red = 0.0f;
+    private static float green = 0.0f;
 
     private final Map<List<Integer>, GLFWKeyCallbackI> inputMap = new HashMap<>();
 
@@ -61,9 +60,6 @@ public class Chopped {
         if(window == NULL) {
             throw new RuntimeException("Failed to create GLFW Window");
         }
-
-
-
         try (MemoryStack stack = stackPush()) {
             IntBuffer width = stack.mallocInt(1);
             IntBuffer height = stack.mallocInt(1);
@@ -82,6 +78,8 @@ public class Chopped {
             glfwSwapInterval(1);
 
             glfwShowWindow(window);
+
+            registerInput();
         }
     }
 
@@ -103,34 +101,47 @@ public class Chopped {
 
     private void handleInput() {
         glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
-            if(key == GLFW_KEY_ESCAPE && action == 0 /*Release*/ ) {
-                glfwSetWindowShouldClose(window, true);
-            }
-            if(key == GLFW_KEY_A && action == 0) {
-                blue += 0.1f;
-                glClearColor(1f, 0f, blue, 0f);
-            }
-            else if(key == GLFW_KEY_D && action == 1) {
-                blue -= 0.1f;
-                glClearColor(1f, 0f, blue, 0f);
-            }
-            if(key == GLFW_KEY_W && action == 0) {
-                green += 0.1f;
-                glClearColor(1f, green, blue, 0f);
-            }
-            else if(key == GLFW_KEY_S && action == 1) {
-                green -= 0.1f;
-                glClearColor(1f, green, blue, 0f);
+            if(inputMap.containsKey(List.of(key, action))) {
+                inputMap.get(List.of(key, action)).invoke(window, key, scancode, action, mods);
             }
         });
     }
 
+    private void decreaseRed(float val) {
+        if(red - val >= 0) red -= val;
+    }
+    private void decreaseBlue(float val) {
+        if(blue - val >= 0) blue -= val;
+    }
+    private void decreaseGreen(float val) {
+        if(green - val >= 0) green -= val;
+    }
+
+    private void increaseRed(float val) {
+        if(red + val >= 0) red += val;
+    }
+    private void increaseBlue(float val) {
+        if(blue + val >= 0) blue += val;
+    }
+    private void increaseGreen(float val) {
+        if(green + val >= 0) green += val;
+    }
+
     private void registerInput() {
-        glfwSetKeyCallback()
+        addInput(GLFW_KEY_W, 1, (window, key, code, action, mods) -> System.out.println("erer"));
+        addInput(GLFW_KEY_S, 1, (window, key, code, action, mods) -> decreaseRed(-0.1f));
+        addInput(GLFW_KEY_D, 1, (window, key, code, action, mods) -> increaseBlue(0.1f));
+        addInput(GLFW_KEY_A, 1, (window, key, code, action, mods) -> decreaseBlue(-0.1f));
+        addInput(GLFW_KEY_E, 1, (window, key, code, action, mods) -> increaseGreen(0.1f));
+        addInput(GLFW_KEY_Q, 1, (window, key, code, action, mods) -> decreaseGreen(-0.1f));
     }
 
     public static void main(String[] args) {
 
         new Chopped().run();
+    }
+
+    private void addInput(int key, int action, GLFWKeyCallbackI callback) {
+        inputMap.put(List.of(key, action), callback);
     }
 }
