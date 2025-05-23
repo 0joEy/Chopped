@@ -9,6 +9,7 @@ import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -23,11 +24,13 @@ public class Chopped {
 
     private long window;
 
-    private static float blue = 0.0f;
-    private static float red = 0.0f;
-    private static float green = 0.0f;
+    private final RGBColor color = new RGBColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     private final Map<List<Integer>, GLFWKeyCallbackI> inputMap = new HashMap<>();
+
+    private boolean show;
+
+    private Random source = new Random();
 
     public void run() {
 
@@ -86,8 +89,6 @@ public class Chopped {
     private void loop() {
         GL.createCapabilities();
 
-        glClearColor(1f, 0f, 0f, 0f);
-
         while(!glfwWindowShouldClose(window)) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -96,6 +97,10 @@ public class Chopped {
             glfwPollEvents();
 
             handleInput();
+
+            if(show) {
+                colorShowTick(source);
+            }
         }
     }
 
@@ -107,33 +112,14 @@ public class Chopped {
         });
     }
 
-    private void decreaseRed(float val) {
-        if(red - val >= 0) red -= val;
-    }
-    private void decreaseBlue(float val) {
-        if(blue - val >= 0) blue -= val;
-    }
-    private void decreaseGreen(float val) {
-        if(green - val >= 0) green -= val;
-    }
-
-    private void increaseRed(float val) {
-        if(red + val >= 0) red += val;
-    }
-    private void increaseBlue(float val) {
-        if(blue + val >= 0) blue += val;
-    }
-    private void increaseGreen(float val) {
-        if(green + val >= 0) green += val;
-    }
-
     private void registerInput() {
-        addInput(GLFW_KEY_W, 1, (window, key, code, action, mods) -> System.out.println("erer"));
-        addInput(GLFW_KEY_S, 1, (window, key, code, action, mods) -> decreaseRed(-0.1f));
-        addInput(GLFW_KEY_D, 1, (window, key, code, action, mods) -> increaseBlue(0.1f));
-        addInput(GLFW_KEY_A, 1, (window, key, code, action, mods) -> decreaseBlue(-0.1f));
-        addInput(GLFW_KEY_E, 1, (window, key, code, action, mods) -> increaseGreen(0.1f));
-        addInput(GLFW_KEY_Q, 1, (window, key, code, action, mods) -> decreaseGreen(-0.1f));
+        addInput(GLFW_KEY_W, 1, (window, key, code, action, mods) -> { color.incrementRed(0.1f); updateColors(); });
+        addInput(GLFW_KEY_S, 1, (window, key, code, action, mods) -> { color.incrementRed(-0.1f); updateColors(); });
+        addInput(GLFW_KEY_D, 1, (window, key, code, action, mods) -> { color.incrementBlue(0.1f); updateColors(); });
+        addInput(GLFW_KEY_A, 1, (window, key, code, action, mods) -> { color.incrementBlue(-0.1f); updateColors(); });
+        addInput(GLFW_KEY_E, 1, (window, key, code, action, mods) -> { color.incrementGreen(0.1f); updateColors(); });
+        addInput(GLFW_KEY_Q, 1, (window, key, code, action, mods) -> { color.incrementGreen(-0.1f); updateColors(); });
+        addInput(GLFW_KEY_SPACE, 1, (window, key, code, action, mods) -> toggleShow());
     }
 
     public static void main(String[] args) {
@@ -143,5 +129,33 @@ public class Chopped {
 
     private void addInput(int key, int action, GLFWKeyCallbackI callback) {
         inputMap.put(List.of(key, action), callback);
+    }
+
+    private void updateColors() {
+        glClearColor(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+    }
+
+    private void toggleShow() {
+        show = !show;
+        max = 0.1f;
+        min = -0.04f;
+    }
+
+    private float min, max;
+
+    private void colorShowTick(Random rand) {
+        float[] a = color.getComponents();
+
+        int components = a.length;
+
+        if((color.sum() / components) <= 0.7f) {
+
+            for(int i = 0; i < components; i++) {
+                a[i] += rand.nextFloat(min, max);
+            }
+        }
+
+        color.updateFromComponents(a);
+        updateColors();
     }
 }
